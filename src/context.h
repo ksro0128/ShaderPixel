@@ -32,13 +32,14 @@ private:
     ProgramUPtr m_normalProgram;                    // normal map shader
     ProgramUPtr m_sphericalMapProgram;              // spherical map shader
     ProgramUPtr m_skyboxProgram;                    // skybox shader
+    ProgramUPtr m_beadProgram;                      // bead shader
+    ProgramUPtr m_testProgram;                      // test shader
+    ProgramUPtr m_cloudProgram;                     // clous shader
 
     // texture
     TextureUPtr m_groundAlbedo;
     TextureUPtr m_groundNormal;
-
     TextureUPtr m_hdrMap;
-
     CubeTexturePtr m_hdrCubeMap;
 
     // mesh
@@ -46,6 +47,8 @@ private:
     MeshUPtr m_plane;
     MeshUPtr m_sphere;
 
+    //framebuffer
+    FramebufferUPtr m_framebuffer;
 
     // screen size
     int m_width {1920};
@@ -57,12 +60,21 @@ private:
     float m_cameraPitch { 0.0f };
     float m_cameraYaw { 0.0f };
     glm::vec3 m_cameraFront { glm::vec3(0.0f, -1.0f, 0.0f) };
-    glm::vec3 m_cameraPos { glm::vec3(0.0f, 1.7f, 8.0f) };
+    glm::vec3 m_cameraPos { glm::vec3(0.0f, 1.8f, 8.0f) };
     glm::vec3 m_cameraUp { glm::vec3(0.0f, 1.0f, 0.0f) };
-
 
     // light parameter
     glm::vec3 m_lightPos { 0.0f, 10.0f, 0.0f };
+
+    // object parameter
+        // bead
+    glm::vec3 m_beadPos { -7.5f, 1.7f, -7.5f };
+    bool m_specularBead { true };
+    bool m_diffuseBead {true };
+
+        //cloud
+    glm::vec3 m_cloudPos { 0.0f, 1.7f, -7.5f};
+    
 };
 
 #endif // __CONTEXT_H__
