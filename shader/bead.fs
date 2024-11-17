@@ -111,7 +111,7 @@ void main() {
         vec3 objectColor = vec3(0.4, 0.4, 0.8); // 구의 기본 색상
         vec3 lightColor = vec3(1.0);            // 광원의 색상
         vec3 edgeColor = vec3(1.0);
-        vec3 torusColor = vec3(0.4, 0.4, 0.0);
+        vec3 torusColor = vec3(0.9, 0.9, 1.0);
 
 
         vec3 lightDir = normalize(uLightPos - hitPos);
