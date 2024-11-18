@@ -95,7 +95,8 @@ bool Context::Init() {
     m_textureProgram = Program::Create("./shader/texture.vs", "./shader/texture.fs");
     m_normalProgram = Program::Create("./shader/normal.vs", "./shader/normal.fs");
     m_beadProgram = Program::Create("./shader/bead.vs", "./shader/bead.fs");
-    m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
+    // m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
+    m_cloudProgram = Program::Create("./shader/cloud.vs", "./shader/cloud.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -154,13 +155,16 @@ void Context::Render() {
         // bool 토글
         ImGui::Checkbox("BeadDiffuse", &m_diffuseBead);
         ImGui::Checkbox("BeadSpecular", &m_specularBead);
+
+        ImGui::Separator();
+        ImGui::Checkbox("Cloud Obstacle ON", &m_obstacleOn);
     }
     ImGui::End();
 
-    // m_framebuffer->Bind();
-    // auto& colorAttachment = m_framebuffer->GetColorAttachment(0);
-    // glViewport(0, 0, m_width, m_height);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_framebuffer->Bind();
+    auto& colorAttachment = m_framebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     m_cameraFront =
         glm::rotate(glm::mat4(1.0f),
@@ -221,10 +225,29 @@ void Context::Render() {
 
 
     // start cloud
-    
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // m_cloudProgram->Use();
+    // model = glm::mat4(1.0f);
+    // model = glm::translate(model, m_cloudPos);
+    // model = glm::scale(model, glm::vec3(4.1f));
+    // m_cloudProgram->SetUniform("uView", view);
+    // m_cloudProgram->SetUniform("uProjection", projection);
+    // m_cloudProgram->SetUniform("uModel", model);
+    // m_cloudProgram->SetUniform("uTransform", projection * view * model);
+    // m_cloudProgram->SetUniform("uCenter", m_cloudPos);
+    // m_cloudProgram->SetUniform("uViewPos", m_cameraPos);
+    // m_cloudProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    // m_cloudProgram->SetUniform("uLightPos", m_lightPos);
 
-
-
+    // m_cloudProgram->SetUniform("uTime", uTime);
+    // m_cloudProgram->SetUniform("uNoise", 1);
+    // m_noise->Bind();
+    // uTime += 0.01f;
+    // if (uTime > 2.0f)
+    //     uTime = 0.0f;
+    // m_sphere->Draw(m_cloudProgram.get());
+    // glDisable(GL_BLEND);
     // end clouds
 
 
@@ -245,38 +268,39 @@ void Context::Render() {
     m_beadProgram->SetUniform("uViewPos", m_cameraPos);
     m_beadProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_beadProgram->SetUniform("uLightPos", m_lightPos);
+    m_beadProgram->SetUniform("uDiffuse", m_diffuseBead);
+    m_beadProgram->SetUniform("uSpecular", m_specularBead);
     m_sphere->Draw(m_beadProgram.get());
     glDisable(GL_BLEND);
     // end bead
 
 
+    // start cloud
+    Framebuffer::BindToDefault();
+    m_cloudProgram->Use();
+    glDepthFunc(GL_LEQUAL);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    colorAttachment->Bind();
+    m_cloudProgram->SetUniform("tex", 0);
+
+    model = glm::mat4(1.0f);
+    m_cloudProgram->SetUniform("uView", view);
+    m_cloudProgram->SetUniform("uProjection", projection);
+    m_cloudProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+    m_cloudProgram->SetUniform("uCenter", m_cloudPos);
+    m_cloudProgram->SetUniform("uViewPos", m_cameraPos);
+    m_cloudProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_cloudProgram->SetUniform("uLightPos", m_lightPos);
+    m_cloudProgram->SetUniform("uObstaclePos", m_obstaclePos);
+    m_cloudProgram->SetUniform("uObstacleOn", m_obstacleOn);
+    m_plane->Draw(m_cloudProgram.get());
+    glDepthFunc(GL_LESS);
+    // end cloud
 
 
-
-
-
-
-    // start test
-    // Framebuffer::BindToDefault();
-    // m_testProgram->Use();
-    // glViewport(0, 0, m_width, m_height);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // glActiveTexture(GL_TEXTURE0);
-    // colorAttachment->Bind();
-    // m_testProgram->SetUniform("tex", 0);
-
-    // model = glm::mat4(1.0f);
-    // m_testProgram->SetUniform("uView", view);
-    // m_testProgram->SetUniform("uProjection", projection);
-    // m_testProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-    // m_testProgram->SetUniform("uCenter", m_beadPos);
-    // m_testProgram->SetUniform("uViewPos", m_cameraPos);
-    // m_testProgram->SetUniform("uLightPos", m_lightPos);
-    // m_testProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
-    // m_plane->Draw(m_testProgram.get());
-
-    // end test
-
+    
 
 
     // Framebuffer::BindToDefault();

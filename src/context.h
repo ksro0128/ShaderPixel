@@ -70,10 +70,13 @@ private:
         // bead
     glm::vec3 m_beadPos { -7.5f, 1.7f, -7.5f };
     bool m_specularBead { true };
-    bool m_diffuseBead {true };
+    bool m_diffuseBead { true };
 
         //cloud
-    glm::vec3 m_cloudPos { 0.0f, 1.7f, -7.5f};
+    glm::vec3 m_cloudPos { 0.0f, 1.7f, -7.5f };
+    glm::vec3 m_obstaclePos { 0.0f, 2.7f, -7.5f };
+    bool m_obstacleOn { false };
+
     
 };
 
