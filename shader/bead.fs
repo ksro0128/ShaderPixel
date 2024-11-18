@@ -12,6 +12,9 @@ uniform vec3 uViewPos;          // 카메라 위치
 uniform vec2 uResolution;       // 렌더링 해상도
 uniform vec3 uLightPos;         // 광원 위치
 
+uniform bool uSpecular;
+uniform bool uDiffuse;
+
 
 float sdSphere(vec3 p, float s)
 {
@@ -61,7 +64,7 @@ void main() {
     float alignment = dot(viewToSurface, vNormal);    
     bool outside = (length(uViewPos - uCenter) > 1.0);
     if (outside) {
-        if (alignment < -0.01) {
+        if (alignment > 0.01) {
             discard;
         }
     }
@@ -131,7 +134,14 @@ void main() {
         vec3 lColor = vec3(0.4, 0.4, 0.8);
         vec3 dColor = vec3(0.1, 0.1, 0.4);
         // 최종 색상 계산
-        vec3 lightColorSum = mix(diffuse + specular, edgeColor, fresnel);
+
+        vec3 diffuseSpecular = vec3(0.0);
+        if (uDiffuse)
+            diffuseSpecular += diffuse;
+        if (uSpecular)
+            diffuseSpecular += specular;
+
+        vec3 lightColorSum = mix(diffuseSpecular, edgeColor, fresnel);
         vec3 depthColor = mix(lColor, dColor, vol);
         if (torusHit){
             depthColor = mix(torusColor, depthColor, vol);
