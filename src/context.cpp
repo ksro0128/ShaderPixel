@@ -46,6 +46,7 @@ void Context::Reshape(int width, int height) {
 
     // framebuffer create
     m_framebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
+    m_testFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
 
 }
 
@@ -95,8 +96,9 @@ bool Context::Init() {
     m_textureProgram = Program::Create("./shader/texture.vs", "./shader/texture.fs");
     m_normalProgram = Program::Create("./shader/normal.vs", "./shader/normal.fs");
     m_beadProgram = Program::Create("./shader/bead.vs", "./shader/bead.fs");
-    // m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
+    m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
     m_cloudProgram = Program::Create("./shader/cloud.vs", "./shader/cloud.fs");
+    m_mandelboxProgram = Program::Create("./shader/mandelbox.vs", "./shader/mandelbox.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -222,36 +224,6 @@ void Context::Render() {
     glDepthFunc(GL_LESS);
     // end skybox
 
-
-
-    // start cloud
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // m_cloudProgram->Use();
-    // model = glm::mat4(1.0f);
-    // model = glm::translate(model, m_cloudPos);
-    // model = glm::scale(model, glm::vec3(4.1f));
-    // m_cloudProgram->SetUniform("uView", view);
-    // m_cloudProgram->SetUniform("uProjection", projection);
-    // m_cloudProgram->SetUniform("uModel", model);
-    // m_cloudProgram->SetUniform("uTransform", projection * view * model);
-    // m_cloudProgram->SetUniform("uCenter", m_cloudPos);
-    // m_cloudProgram->SetUniform("uViewPos", m_cameraPos);
-    // m_cloudProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
-    // m_cloudProgram->SetUniform("uLightPos", m_lightPos);
-
-    // m_cloudProgram->SetUniform("uTime", uTime);
-    // m_cloudProgram->SetUniform("uNoise", 1);
-    // m_noise->Bind();
-    // uTime += 0.01f;
-    // if (uTime > 2.0f)
-    //     uTime = 0.0f;
-    // m_sphere->Draw(m_cloudProgram.get());
-    // glDisable(GL_BLEND);
-    // end clouds
-
-
-
     // start bead
     //blending
     glEnable(GL_BLEND);
@@ -275,8 +247,42 @@ void Context::Render() {
     // end bead
 
 
+    // start mandelbox
+
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    m_mandelboxProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_mandelboxPos);
+    model = glm::scale(model, glm::vec3(4.0f));
+    m_mandelboxProgram->SetUniform("uView", view);
+    m_mandelboxProgram->SetUniform("uProjection", projection);
+    m_mandelboxProgram->SetUniform("uModel", model);
+    m_mandelboxProgram->SetUniform("uTransform", projection * view * model);
+    m_mandelboxProgram->SetUniform("uCenter", m_mandelboxPos);
+    m_mandelboxProgram->SetUniform("uViewPos", m_cameraPos);
+    m_mandelboxProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_mandelboxProgram->SetUniform("uLightPos", m_lightPos);
+    m_box->Draw(m_mandelboxProgram.get());
+    // glDisable(GL_BLEND);
+
+    // end mandelbox
+
+
+
+
+
+
     // start cloud
     Framebuffer::BindToDefault();
+
+    // m_testFramebuffer->Bind();
+    // auto& testColorAttachment = m_testFramebuffer->GetColorAttachment(0);
+    // glViewport(0, 0, m_width, m_height);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
     m_cloudProgram->Use();
     glDepthFunc(GL_LEQUAL);
     glViewport(0, 0, m_width, m_height);
@@ -306,12 +312,19 @@ void Context::Render() {
     // Framebuffer::BindToDefault();
     // glViewport(0, 0, m_width, m_height);
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_textureProgram->Use();
+    // m_testProgram->Use();
     // glActiveTexture(GL_TEXTURE0);
-    // colorAttachment->Bind();
+    // testColorAttachment->Bind();
     // model = glm::mat4(1.0f);
-    // m_textureProgram->SetUniform("transform", model);
-    // m_textureProgram->SetUniform("tex", 0);
-    // m_plane->Draw(m_textureProgram.get());
+    // m_testProgram->SetUniform("uView", view);
+    // m_testProgram->SetUniform("uProjection", projection);
+    // m_testProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+    // m_testProgram->SetUniform("uCenter", m_mandelboxPos);
+    // m_testProgram->SetUniform("uViewPos", m_cameraPos);
+    // m_testProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    // m_testProgram->SetUniform("uLightPos", m_lightPos);
+
+    // m_testProgram->SetUniform("tex", 0);
+    // m_plane->Draw(m_testProgram.get());
 
 }

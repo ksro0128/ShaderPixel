@@ -34,7 +34,8 @@ private:
     ProgramUPtr m_skyboxProgram;                    // skybox shader
     ProgramUPtr m_beadProgram;                      // bead shader
     ProgramUPtr m_testProgram;                      // test shader
-    ProgramUPtr m_cloudProgram;                     // clous shader
+    ProgramUPtr m_cloudProgram;                     // cloud shader
+    ProgramUPtr m_mandelboxProgram;                 // mandelbox shader
 
     // texture
     TextureUPtr m_groundAlbedo;
@@ -49,6 +50,7 @@ private:
 
     //framebuffer
     FramebufferUPtr m_framebuffer;
+    FramebufferUPtr m_testFramebuffer;
 
     // screen size
     int m_width {1920};
@@ -72,10 +74,13 @@ private:
     bool m_specularBead { true };
     bool m_diffuseBead { true };
 
-        //cloud
+        // cloud
     glm::vec3 m_cloudPos { 0.0f, 1.7f, -7.5f };
     glm::vec3 m_obstaclePos { 0.0f, 2.7f, -7.5f };
     bool m_obstacleOn { false };
+
+        // mandelbox
+    glm::vec3 m_mandelboxPos { 7.5f, 2.1f, -7.5f };
 
     
 };
