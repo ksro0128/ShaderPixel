@@ -99,6 +99,7 @@ bool Context::Init() {
     m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
     m_cloudProgram = Program::Create("./shader/cloud.vs", "./shader/cloud.fs");
     m_mandelboxProgram = Program::Create("./shader/mandelbox.vs", "./shader/mandelbox.fs");
+    m_mandelbulbProgram = Program::Create("./shader/mandelbulb.vs", "./shader/mandelbulb.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -248,9 +249,6 @@ void Context::Render() {
 
 
     // start mandelbox
-
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_mandelboxProgram->Use();
     model = glm::mat4(1.0f);
     model = glm::translate(model, m_mandelboxPos);
@@ -264,13 +262,24 @@ void Context::Render() {
     m_mandelboxProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_mandelboxProgram->SetUniform("uLightPos", m_lightPos);
     m_box->Draw(m_mandelboxProgram.get());
-    // glDisable(GL_BLEND);
-
     // end mandelbox
 
 
-
-
+    // start mandelbulb
+    m_mandelbulbProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_mandelbulbPos);
+    model = glm::scale(model, glm::vec3(3.0f));
+    m_mandelbulbProgram->SetUniform("uView", view);
+    m_mandelbulbProgram->SetUniform("uProjection", projection);
+    m_mandelbulbProgram->SetUniform("uModel", model);
+    m_mandelbulbProgram->SetUniform("uTransform", projection * view * model);
+    m_mandelbulbProgram->SetUniform("uCenter", m_mandelbulbPos);
+    m_mandelbulbProgram->SetUniform("uViewPos", m_cameraPos);
+    m_mandelbulbProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_mandelbulbProgram->SetUniform("uLightPos", m_lightPos);
+    m_sphere->Draw(m_mandelbulbProgram.get());
+    // end mandelbulb
 
 
     // start cloud
@@ -319,11 +328,10 @@ void Context::Render() {
     // m_testProgram->SetUniform("uView", view);
     // m_testProgram->SetUniform("uProjection", projection);
     // m_testProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-    // m_testProgram->SetUniform("uCenter", m_mandelboxPos);
+    // m_testProgram->SetUniform("uCenter", m_mandelbulbPos);
     // m_testProgram->SetUniform("uViewPos", m_cameraPos);
     // m_testProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     // m_testProgram->SetUniform("uLightPos", m_lightPos);
-
     // m_testProgram->SetUniform("tex", 0);
     // m_plane->Draw(m_testProgram.get());
 

@@ -1,16 +1,16 @@
 #version 330 core
+
 out vec4 fragColor;
+
+uniform vec3 uCenter;         // Mandelbox 중심 위치
+uniform vec3 uViewPos;        // 카메라 위치
+uniform vec3 uLightPos;       // 광원 위치
+uniform vec2 uResolution;     // 렌더링 해상도
 
 in mat4 inverseView;
 in mat4 inverseProjection;
-in vec2 texCoord;
-
-uniform vec3 uCenter;           // object 중심 위치
-uniform vec3 uViewPos;          // 카메라 위치
-uniform vec2 uResolution;       // 렌더링 해상도
-uniform vec3 uLightPos;         // 광원 위치
-
-uniform sampler2D tex;          // 배경
+in vec3 vNormal;
+in vec3 vPosition;
 
 vec3 calculateRayDirection(vec2 fragCoord) {
     vec4 clipSpacePos = vec4((fragCoord / uResolution) * 2.0 - 1.0, -1.0, 1.0);    
@@ -23,21 +23,22 @@ vec3 calculateRayDirection(vec2 fragCoord) {
 
 const int MAX_MARCHING_STEPS = 300;
 const float MIN_DIST = 0.001f;  // 최소 거리 (탈출 조건)
-const float MAX_DIST = 100.0f;  // 최대 거리 (탈출 조건)
+const float MAX_DIST = 30.0f;  // 최대 거리 (탈출 조건)
 const float EPSILON = 0.0001f;  // 거리 함수 민감도
 const float power = 8.0f;       // Mandelbulb fractal 파워
 const int iter = 8;             // 최대 반복 횟수
 const float bailOut = 2.0f;     // 탈출 반경
 
 // Mandelbulb distance function
-vec4 Mandelbulb(vec3 pos) {
+float Mandelbulb(vec3 pos) {
     vec3 z = pos;
     float dr = 1.0;
     float r = 0.0;
-    int i = 0;
-    for (i = 0; i < iter; ++i) {
+
+    for (int i = 0; i < iter; ++i) {
         r = length(z);
         if (r > bailOut) break;
+
         float theta = acos(z.z / r);
         float phi = atan(z.y, z.x);
         float zr = pow(r, power - 1.0);
@@ -45,16 +46,18 @@ vec4 Mandelbulb(vec3 pos) {
         zr *= r;
         theta *= power;
         phi *= power;
+
         z = zr * vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
         z += pos;
     }
-    return vec4(0.25 * log(r) * r / dr, 1.0 - float(iter) / float(i), 0.5, 1.0);
+
+    return 0.25 * log(r) * r / dr;
 }
 
 // Scene distance function
 float SceneSDF(vec3 p) {
     vec3 relativePos = p - uCenter;
-    return Mandelbulb(relativePos).x;
+    return Mandelbulb(relativePos);
 }
 
 // Calculate surface normal using gradient approximation
@@ -76,7 +79,7 @@ vec4 rayMarch(vec3 rayOrigin, vec3 rayDir) {
         if (depth > MAX_DIST) break;            // Exceed max distance
         depth += dist;
     }
-    return vec4(0.0); // No hit
+    return vec4(0.0);
 }
 
 bool isInShadow(vec3 point, vec3 lightDir) {
@@ -125,20 +128,26 @@ vec3 phongShading(vec3 p, vec3 normal, vec3 lightPos, vec3 viewPos) {
 
 
 void main() {
+
+    // 카메라가 구 바깥에 있을때는 레이를 두번 쏘기 때문에 걸러준다    
+    vec3 viewToSurface = normalize(vPosition - uViewPos);
+    float alignment = dot(viewToSurface, vNormal);    
+    bool outside = (length(uViewPos - uCenter) > 1.5);
+    if (outside) {
+        if (alignment > 0.01) {
+            discard;
+        }
+    }
+    ////
+
+
     // Calculate ray direction
     vec3 rayDir = calculateRayDirection(gl_FragCoord.xy);
     vec4 hit = rayMarch(uViewPos, rayDir);
-
-    // Background color from texture
-    vec4 backgroundColor = texture(tex, texCoord);
-
-    // If no hit, display background texture
     if (hit.w == 0.0) {
-        fragColor = backgroundColor;
-        return;
+        discard;
     }
 
-    // If hit, calculate lighting
     vec3 hitPos = hit.xyz;
     vec3 normal = calculateNormal(hitPos);
     vec3 lightDir = normalize(uLightPos - hitPos);

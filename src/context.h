@@ -36,6 +36,8 @@ private:
     ProgramUPtr m_testProgram;                      // test shader
     ProgramUPtr m_cloudProgram;                     // cloud shader
     ProgramUPtr m_mandelboxProgram;                 // mandelbox shader
+    ProgramUPtr m_mandelbulbProgram;                 // mandelbulb shader
+
 
     // texture
     TextureUPtr m_groundAlbedo;
@@ -82,7 +84,9 @@ private:
         // mandelbox
     glm::vec3 m_mandelboxPos { 7.5f, 2.1f, -7.5f };
 
-    
+        // mandelbulb
+    glm::vec3 m_mandelbulbPos { -7.5f, 1.7f, 0.0 };
+
 };
 
 #endif // __CONTEXT_H__
