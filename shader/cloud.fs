@@ -150,8 +150,8 @@ void main() {
     vec3 color = vec3(0.0);
     bool hit = false;
     // 그릴 공간까지 이동
-    for (int i = 0; i < 2; i++) {
-        float dist = sdSphere(rayPos - uCenter, 2.1);
+    for (int i = 0; i < 3; i++) {
+        float dist = sdSphere(rayPos - uCenter, 1.1);
         if (dist < 0.01) {
             hit = true;
             break;
