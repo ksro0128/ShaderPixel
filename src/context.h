@@ -36,25 +36,30 @@ private:
     ProgramUPtr m_testProgram;                      // test shader
     ProgramUPtr m_cloudProgram;                     // cloud shader
     ProgramUPtr m_mandelboxProgram;                 // mandelbox shader
-    ProgramUPtr m_mandelbulbProgram;                 // mandelbulb shader
-    ProgramUPtr m_spongeProgram;                 // menger sponge shader
-
-
+    ProgramUPtr m_mandelbulbProgram;                // mandelbulb shader
+    ProgramUPtr m_spongeProgram;                    // menger sponge shader
 
     // texture
     TextureUPtr m_groundAlbedo;
     TextureUPtr m_groundNormal;
     TextureUPtr m_hdrMap;
+    TextureUPtr m_anotherWorldHdrMap;
+    TextureUPtr m_dinoTexture;
     CubeTexturePtr m_hdrCubeMap;
+    CubeTexturePtr m_anotherWorldCubeMap;
 
     // mesh
     MeshUPtr m_box;
     MeshUPtr m_plane;
     MeshUPtr m_sphere;
+    ModelUPtr m_dinoModel;
+    ModelUPtr m_pictureFrame;
+
 
     //framebuffer
     FramebufferUPtr m_framebuffer;
     FramebufferUPtr m_testFramebuffer;
+    FramebufferUPtr m_anotherWorldFramebuffer;
 
     // screen size
     int m_width {1920};
@@ -66,7 +71,7 @@ private:
     float m_cameraPitch { 0.0f };
     float m_cameraYaw { 0.0f };
     glm::vec3 m_cameraFront { glm::vec3(0.0f, -1.0f, 0.0f) };
-    glm::vec3 m_cameraPos { glm::vec3(0.0f, 1.8f, 8.0f) };
+    glm::vec3 m_cameraPos { glm::vec3(0.0f, 1.8f, 0.0f) };
     glm::vec3 m_cameraUp { glm::vec3(0.0f, 1.0f, 0.0f) };
 
     // light parameter
@@ -91,6 +96,9 @@ private:
 
         // ifs - menger sponge
     glm::vec3 m_spongePos { 7.5f, 1.7f, 0.0f };
+
+        // another world
+    glm::vec3 m_anotherWorldPos { 0.0f, 1.7f, 7.5f };
 
 };
 

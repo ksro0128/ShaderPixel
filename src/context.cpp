@@ -47,6 +47,7 @@ void Context::Reshape(int width, int height) {
     // framebuffer create
     m_framebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
     m_testFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
+    m_anotherWorldFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
 
 }
 
@@ -90,6 +91,8 @@ bool Context::Init() {
     m_box = Mesh::CreateBox();
     m_plane = Mesh::CreatePlane();
     m_sphere = Mesh::CreateSphere();
+    m_dinoModel = Model::Load("./model/Dino.vox.obj");
+    m_pictureFrame = Model::Load("./model/Moldura Sketchfab.obj");
 
     m_simpleProgram = Program::Create("./shader/simple.vs", "./shader/simple.fs");
     m_skyboxProgram = Program::Create("./shader/skybox_hdr.vs", "./shader/skybox_hdr.fs");
@@ -105,7 +108,7 @@ bool Context::Init() {
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
     m_groundNormal = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Normal.png").get());
-
+    m_dinoTexture = Texture::CreateFromImage(Image::Load("./model/Dino.vox.png").get());
 
     // create hdr cubemap
     m_hdrMap = Texture::CreateFromImage(Image::Load("./image/god_rays_sky_dome_8k.hdr").get());
@@ -140,6 +143,23 @@ bool Context::Init() {
     Framebuffer::BindToDefault();
     glViewport(0, 0, m_width, m_height);
 
+    m_anotherWorldHdrMap = Texture::CreateFromImage(Image::Load("./image/dug_up_dark_soil_in_the_field_8k.hdr").get());
+    m_anotherWorldCubeMap = CubeTexture::Create(2048, 2048, GL_RGB16F, GL_FLOAT);
+    cubeFramebuffer = CubeFramebuffer::Create(m_anotherWorldCubeMap);
+    projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    m_sphericalMapProgram->Use();
+    m_sphericalMapProgram->SetUniform("tex", 0);
+    m_anotherWorldHdrMap->Bind();
+    glViewport(0, 0, 2048, 2048);
+    for (int i = 0; i < (int)views.size(); i++) {
+        cubeFramebuffer->Bind(i);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_sphericalMapProgram->SetUniform("transform", projection * views[i]);
+        m_box->Draw(m_sphericalMapProgram.get());
+    }
+    Framebuffer::BindToDefault();
+    glViewport(0, 0, m_width, m_height);
+
     return true;
 }
 
@@ -153,7 +173,7 @@ void Context::Render() {
         if (ImGui::Button("reset camera")) {
             m_cameraYaw = 0.0f;
             m_cameraPitch = 0.0f;
-            m_cameraPos = glm::vec3(0.0f, 1.8f, 3.0f);
+            m_cameraPos = glm::vec3(0.0f, 1.8f, 0.0f);
         }
         ImGui::Separator();
         // bool 토글
@@ -165,26 +185,64 @@ void Context::Render() {
     }
     ImGui::End();
 
-    m_framebuffer->Bind();
-    auto& colorAttachment = m_framebuffer->GetColorAttachment(0);
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     m_cameraFront =
         glm::rotate(glm::mat4(1.0f),
         glm::radians(m_cameraYaw), glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::rotate(glm::mat4(1.0f),
         glm::radians(m_cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-
     auto projection = glm::perspective(glm::radians(45.0f),
         (float)m_width / (float)m_height, 0.01f, 150.0f);
     auto view = glm::lookAt(
         m_cameraPos,
         m_cameraPos + m_cameraFront,
         m_cameraUp);
+    auto model = glm::mat4(1.0f);
 
+    // start another world
+    auto anotherWorldCameraFront = glm::normalize(m_anotherWorldPos - m_cameraPos);
+    auto anotherWorldProjection = glm::perspective(glm::radians(45.0f),
+        (float)m_width / (float)m_height, 0.01f, 150.0f);
+    auto anotherWorldView = glm::lookAt(
+        m_anotherWorldPos,
+        m_anotherWorldPos + anotherWorldCameraFront,
+        m_cameraUp);
+    m_anotherWorldFramebuffer->Bind();
+    auto& colorAttachmentAW = m_anotherWorldFramebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDepthFunc(GL_LEQUAL);
+    m_skyboxProgram->Use();
+    m_skyboxProgram->SetUniform("projection", anotherWorldProjection);
+    m_skyboxProgram->SetUniform("view", anotherWorldView);
+    m_skyboxProgram->SetUniform("cubeMap", 0);
+    m_anotherWorldCubeMap->Bind();
+    m_box->Draw(m_skyboxProgram.get());
+    glDepthFunc(GL_LESS);
+
+    glActiveTexture(GL_TEXTURE0);
+    m_dinoTexture->Bind();
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            m_textureProgram->Use();
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(-10.0f + j * 4.0f, 0.0f, 7.5f + i * 4.0f));
+            model = glm::scale(model, glm::vec3(0.5f));
+            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            m_textureProgram->SetUniform("transform", anotherWorldProjection * anotherWorldView * model);
+            m_textureProgram->SetUniform("tex", 0);
+            m_dinoModel->Draw(m_textureProgram.get());
+        }
+    }
+    // end another world
+
+
+    m_framebuffer->Bind();
+    auto& colorAttachment = m_framebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
     // start ground
     m_normalProgram->Use();
@@ -197,7 +255,7 @@ void Context::Render() {
     m_groundNormal->Bind();
     m_normalProgram->SetUniform("normalMap", 1);
     glActiveTexture(GL_TEXTURE0);
-    auto model = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(30.0f));
     model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     m_normalProgram->SetUniform("transform", projection * view * model);
@@ -296,12 +354,31 @@ void Context::Render() {
     m_spongeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_spongeProgram->SetUniform("uLightPos", m_lightPos);
     m_box->Draw(m_spongeProgram.get());
-
-
     // end sponge
 
+    // start another world
+    m_textureProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_anotherWorldPos);
+    model = glm::scale(model, glm::vec3(2.0f));
+    model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_textureProgram->SetUniform("transform", projection * view * model);
+    glActiveTexture(GL_TEXTURE0);
+    colorAttachmentAW->Bind();
+    m_textureProgram->SetUniform("tex", 0);
+    m_plane->Draw(m_textureProgram.get());
 
+    m_simpleProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_anotherWorldPos);
+    model = glm::scale(model, glm::vec3(1.2f, 1.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_simpleProgram->SetUniform("transform", projection * view * model);
+    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.8f, 0.6f, 1.0f));
+    m_pictureFrame->Draw(m_simpleProgram.get());
 
+    // end another world
+    
 
 
     // start cloud
@@ -311,8 +388,6 @@ void Context::Render() {
     // auto& testColorAttachment = m_testFramebuffer->GetColorAttachment(0);
     // glViewport(0, 0, m_width, m_height);
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
 
     m_cloudProgram->Use();
     glDepthFunc(GL_LEQUAL);
@@ -335,9 +410,6 @@ void Context::Render() {
     m_plane->Draw(m_cloudProgram.get());
     glDepthFunc(GL_LESS);
     // end cloud
-
-
-    
 
 
     // Framebuffer::BindToDefault();
