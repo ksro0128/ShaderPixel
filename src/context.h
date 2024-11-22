@@ -26,6 +26,8 @@ private:
     Context() {}
     bool Init();
     
+    float uTime { 0.0f };
+
     // shader
     ProgramUPtr m_simpleProgram;                    // simple shader
     ProgramUPtr m_textureProgram;                   // texture shader
@@ -38,6 +40,7 @@ private:
     ProgramUPtr m_mandelboxProgram;                 // mandelbox shader
     ProgramUPtr m_mandelbulbProgram;                // mandelbulb shader
     ProgramUPtr m_spongeProgram;                    // menger sponge shader
+    ProgramUPtr m_kaleidoscopeProgram;              // kaleidoscope shader
 
     // texture
     TextureUPtr m_groundAlbedo;
@@ -60,6 +63,7 @@ private:
     FramebufferUPtr m_framebuffer;
     FramebufferUPtr m_testFramebuffer;
     FramebufferUPtr m_anotherWorldFramebuffer;
+    FramebufferUPtr m_kaleidoscopeFramebuffer;
 
     // screen size
     int m_width {1920};
@@ -99,6 +103,9 @@ private:
 
         // another world
     glm::vec3 m_anotherWorldPos { 0.0f, 1.7f, 7.5f };
+
+        // 2d shader - kaleidoscope
+    glm::vec3 m_kaleidoscopePos { -7.5f, 1.7f, 7.5f };
 
 };
 

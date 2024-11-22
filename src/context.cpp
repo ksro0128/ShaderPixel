@@ -48,7 +48,7 @@ void Context::Reshape(int width, int height) {
     m_framebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
     m_testFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
     m_anotherWorldFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
-
+    m_kaleidoscopeFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
 }
 
 void Context::MouseMove(double x, double y) {
@@ -104,6 +104,7 @@ bool Context::Init() {
     m_mandelboxProgram = Program::Create("./shader/mandelbox.vs", "./shader/mandelbox.fs");
     m_mandelbulbProgram = Program::Create("./shader/mandelbulb.vs", "./shader/mandelbulb.fs");
     m_spongeProgram = Program::Create("./shader/sponge.vs", "./shader/sponge.fs");
+    m_kaleidoscopeProgram = Program::Create("./shader/kaleidoscope.vs", "./shader/kaleidoscope.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -198,6 +199,21 @@ void Context::Render() {
         m_cameraPos + m_cameraFront,
         m_cameraUp);
     auto model = glm::mat4(1.0f);
+    
+    // start 2d shader - kaleidoscope
+    m_kaleidoscopeFramebuffer->Bind();
+    auto& colorAttachment2D = m_kaleidoscopeFramebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_kaleidoscopeProgram->Use();
+    model = glm::mat4(1.0f);
+    m_kaleidoscopeProgram->SetUniform("transform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+    m_kaleidoscopeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_kaleidoscopeProgram->SetUniform("uTime", uTime);
+    uTime += 0.01f;
+    m_plane->Draw(m_kaleidoscopeProgram.get());
+    // end 2d shader - kaleidoscope
+
 
     // start another world
     auto anotherWorldCameraFront = glm::normalize(m_anotherWorldPos - m_cameraPos);
@@ -376,8 +392,30 @@ void Context::Render() {
     m_simpleProgram->SetUniform("transform", projection * view * model);
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.8f, 0.6f, 1.0f));
     m_pictureFrame->Draw(m_simpleProgram.get());
-
     // end another world
+
+    // start 2d shader - kaleidoscope
+    m_textureProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_kaleidoscopePos);
+    model = glm::scale(model, glm::vec3(2.0f));
+    model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_textureProgram->SetUniform("transform", projection * view * model);
+    glActiveTexture(GL_TEXTURE0);
+    colorAttachment2D->Bind();
+    m_textureProgram->SetUniform("tex", 0);
+    m_plane->Draw(m_textureProgram.get());
+
+    m_simpleProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_kaleidoscopePos);
+    model = glm::scale(model, glm::vec3(1.2f, 1.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_simpleProgram->SetUniform("transform", projection * view * model);
+    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.8f, 0.6f, 1.0f));
+    m_pictureFrame->Draw(m_simpleProgram.get());
+    // end 2d shader - kaleidoscope
+
     
 
 
