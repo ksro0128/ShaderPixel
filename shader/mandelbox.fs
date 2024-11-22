@@ -115,7 +115,7 @@ void main() {
     // 카메라가 구 바깥에 있을때는 레이를 두번 쏘기 때문에 걸러준다    
     vec3 viewToSurface = normalize(vPosition - uViewPos);
     float alignment = dot(viewToSurface, vNormal);    
-    bool outside = (sdBox(uViewPos - uCenter, vec3(4.0, 4.0, 4.0)) > 0.00);
+    bool outside = (sdBox(uViewPos - uCenter, vec3(2.0, 2.0, 2.0)) > 0.00);
     if (outside) {
         if (alignment > 0.01) {
             discard;
