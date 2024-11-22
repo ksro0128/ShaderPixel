@@ -100,6 +100,7 @@ bool Context::Init() {
     m_cloudProgram = Program::Create("./shader/cloud.vs", "./shader/cloud.fs");
     m_mandelboxProgram = Program::Create("./shader/mandelbox.vs", "./shader/mandelbox.fs");
     m_mandelbulbProgram = Program::Create("./shader/mandelbulb.vs", "./shader/mandelbulb.fs");
+    m_spongeProgram = Program::Create("./shader/sponge.vs", "./shader/sponge.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -281,6 +282,27 @@ void Context::Render() {
     m_sphere->Draw(m_mandelbulbProgram.get());
     // end mandelbulb
 
+    // start sponge
+    m_spongeProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_spongePos);
+    model = glm::scale(model, glm::vec3(2.0f));
+    m_spongeProgram->SetUniform("uView", view);
+    m_spongeProgram->SetUniform("uProjection", projection);
+    m_spongeProgram->SetUniform("uModel", model);
+    m_spongeProgram->SetUniform("uTransform", projection * view * model);
+    m_spongeProgram->SetUniform("uCenter", m_spongePos);
+    m_spongeProgram->SetUniform("uViewPos", m_cameraPos);
+    m_spongeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_spongeProgram->SetUniform("uLightPos", m_lightPos);
+    m_box->Draw(m_spongeProgram.get());
+
+
+    // end sponge
+
+
+
+
 
     // start cloud
     Framebuffer::BindToDefault();
@@ -328,7 +350,7 @@ void Context::Render() {
     // m_testProgram->SetUniform("uView", view);
     // m_testProgram->SetUniform("uProjection", projection);
     // m_testProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-    // m_testProgram->SetUniform("uCenter", m_mandelbulbPos);
+    // m_testProgram->SetUniform("uCenter", m_spongePos);
     // m_testProgram->SetUniform("uViewPos", m_cameraPos);
     // m_testProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     // m_testProgram->SetUniform("uLightPos", m_lightPos);

@@ -37,6 +37,8 @@ private:
     ProgramUPtr m_cloudProgram;                     // cloud shader
     ProgramUPtr m_mandelboxProgram;                 // mandelbox shader
     ProgramUPtr m_mandelbulbProgram;                 // mandelbulb shader
+    ProgramUPtr m_spongeProgram;                 // menger sponge shader
+
 
 
     // texture
@@ -85,7 +87,10 @@ private:
     glm::vec3 m_mandelboxPos { 7.5f, 2.1f, -7.5f };
 
         // mandelbulb
-    glm::vec3 m_mandelbulbPos { -7.5f, 1.7f, 0.0 };
+    glm::vec3 m_mandelbulbPos { -7.5f, 1.7f, 0.0f };
+
+        // ifs - menger sponge
+    glm::vec3 m_spongePos { 7.5f, 1.7f, 0.0f };
 
 };
 

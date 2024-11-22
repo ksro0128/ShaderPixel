@@ -1,16 +1,16 @@
 #version 330 core
+
 out vec4 fragColor;
+
+uniform vec3 uCenter;         // Mandelbox 중심 위치
+uniform vec3 uViewPos;        // 카메라 위치
+uniform vec3 uLightPos;       // 광원 위치
+uniform vec2 uResolution;     // 렌더링 해상도
 
 in mat4 inverseView;
 in mat4 inverseProjection;
-in vec2 texCoord;
-
-uniform vec3 uCenter;           // object 중심 위치
-uniform vec3 uViewPos;          // 카메라 위치
-uniform vec2 uResolution;       // 렌더링 해상도
-uniform vec3 uLightPos;         // 광원 위치
-
-uniform sampler2D tex;          // 배경
+in vec3 vNormal;
+in vec3 vPosition;
 
 vec3 calculateRayDirection(vec2 fragCoord) {
     vec4 clipSpacePos = vec4((fragCoord / uResolution) * 2.0 - 1.0, -1.0, 1.0);    
@@ -104,8 +104,19 @@ bool isInShadow(vec3 point, vec3 lightPos) {
 }
 
 void main() {
-    vec4 pixel = texture(tex, texCoord);
-    if (pixel.a < 0.01) discard;
+    
+    // 카메라가 구 바깥에 있을때는 레이를 두번 쏘기 때문에 걸러준다    
+    vec3 viewToSurface = normalize(vPosition - uViewPos);
+    float alignment = dot(viewToSurface, vNormal);    
+    bool outside = (sdBox(uViewPos - uCenter, vec3(1.0, 1.0, 1.0)) > 0.00);
+    if (outside) {
+        if (alignment > 0.01) {
+            discard;
+        }
+    }
+    ////
+
+
 
     // Calculate ray direction
     vec3 rayDir = calculateRayDirection(gl_FragCoord.xy);
@@ -123,7 +134,6 @@ void main() {
         }
         fragColor = vec4(color, 1.0);
     }
-    else {
-        fragColor = pixel;
-    }
+    else
+        discard ;
 }
