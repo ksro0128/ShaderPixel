@@ -99,12 +99,13 @@ bool Context::Init() {
     m_textureProgram = Program::Create("./shader/texture.vs", "./shader/texture.fs");
     m_normalProgram = Program::Create("./shader/normal.vs", "./shader/normal.fs");
     m_beadProgram = Program::Create("./shader/bead.vs", "./shader/bead.fs");
-    m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
+    // m_testProgram = Program::Create("./shader/test.vs", "./shader/test.fs");
     m_cloudProgram = Program::Create("./shader/cloud.vs", "./shader/cloud.fs");
     m_mandelboxProgram = Program::Create("./shader/mandelbox.vs", "./shader/mandelbox.fs");
     m_mandelbulbProgram = Program::Create("./shader/mandelbulb.vs", "./shader/mandelbulb.fs");
     m_spongeProgram = Program::Create("./shader/sponge.vs", "./shader/sponge.fs");
     m_kaleidoscopeProgram = Program::Create("./shader/kaleidoscope.vs", "./shader/kaleidoscope.fs");
+    m_waterProgram = Program::Create("./shader/water.vs", "./shader/water.fs");
 
 
     m_groundAlbedo = Texture::CreateFromImage(Image::Load("./image/Old_Plastered_Stone_Wall_1_Diffuse.png").get());
@@ -422,10 +423,10 @@ void Context::Render() {
     // start cloud
     Framebuffer::BindToDefault();
 
-    // m_testFramebuffer->Bind();
-    // auto& testColorAttachment = m_testFramebuffer->GetColorAttachment(0);
-    // glViewport(0, 0, m_width, m_height);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_testFramebuffer->Bind();
+    auto& testColorAttachment = m_testFramebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     m_cloudProgram->Use();
     glDepthFunc(GL_LEQUAL);
@@ -450,21 +451,26 @@ void Context::Render() {
     // end cloud
 
 
-    // Framebuffer::BindToDefault();
-    // glViewport(0, 0, m_width, m_height);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_testProgram->Use();
-    // glActiveTexture(GL_TEXTURE0);
-    // testColorAttachment->Bind();
-    // model = glm::mat4(1.0f);
-    // m_testProgram->SetUniform("uView", view);
-    // m_testProgram->SetUniform("uProjection", projection);
-    // m_testProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-    // m_testProgram->SetUniform("uCenter", m_spongePos);
-    // m_testProgram->SetUniform("uViewPos", m_cameraPos);
-    // m_testProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
-    // m_testProgram->SetUniform("uLightPos", m_lightPos);
-    // m_testProgram->SetUniform("tex", 0);
-    // m_plane->Draw(m_testProgram.get());
+    Framebuffer::BindToDefault();
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_waterProgram->Use();
+    glActiveTexture(GL_TEXTURE0);
+    testColorAttachment->Bind();
+    model = glm::mat4(1.0f);
+    m_waterProgram->SetUniform("uView", view);
+    m_waterProgram->SetUniform("uProjection", projection);
+    m_waterProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+    m_waterProgram->SetUniform("uCenter", m_waterPos);
+    m_waterProgram->SetUniform("uViewPos", m_cameraPos);
+    m_waterProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_waterProgram->SetUniform("uLightPos", m_lightPos);
+    m_waterProgram->SetUniform("uTime", uTime);
+    m_waterProgram->SetUniform("tex", 0);
+    glActiveTexture(GL_TEXTURE1);
+    m_hdrCubeMap->Bind();
+    m_waterProgram->SetUniform("cubeTex", 1);
+    glActiveTexture(GL_TEXTURE0);
+    m_plane->Draw(m_waterProgram.get());
 
 }

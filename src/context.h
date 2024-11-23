@@ -41,6 +41,7 @@ private:
     ProgramUPtr m_mandelbulbProgram;                // mandelbulb shader
     ProgramUPtr m_spongeProgram;                    // menger sponge shader
     ProgramUPtr m_kaleidoscopeProgram;              // kaleidoscope shader
+    ProgramUPtr m_waterProgram;                     // water shader
 
     // texture
     TextureUPtr m_groundAlbedo;
@@ -106,6 +107,9 @@ private:
 
         // 2d shader - kaleidoscope
     glm::vec3 m_kaleidoscopePos { -7.5f, 1.7f, 7.5f };
+
+        // water block
+    glm::vec3 m_waterPos { 7.5f, 1.7f, 7.5f };
 
 };
 
