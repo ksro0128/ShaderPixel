@@ -319,6 +319,9 @@ void Context::Render() {
     m_beadProgram->SetUniform("uLightPos", m_lightPos);
     m_beadProgram->SetUniform("uDiffuse", m_diffuseBead);
     m_beadProgram->SetUniform("uSpecular", m_specularBead);
+    m_hdrCubeMap->Bind();
+    m_beadProgram->SetUniform("cubeTex", 0);
+    
     m_sphere->Draw(m_beadProgram.get());
     glDisable(GL_BLEND);
     // end bead

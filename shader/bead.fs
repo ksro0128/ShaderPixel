@@ -15,6 +15,8 @@ uniform vec3 uLightPos;         // 광원 위치
 uniform bool uSpecular;
 uniform bool uDiffuse;
 
+uniform samplerCube cubeTex;
+
 
 float sdSphere(vec3 p, float s)
 {
@@ -149,6 +151,10 @@ void main() {
         }
         vec4 finalColor = mix(vec4(lightColorSum, 1.0), vec4(depthColor, 1.0), 0.7);
         finalColor.a = clamp(vol, 0.6, 1.0);
+
+        vec3 reflectedDir = reflect(rayDir, normal);
+        vec3 reflectionColor = texture(cubeTex, reflectedDir).rgb;
+        finalColor = mix(finalColor, vec4(reflectionColor, finalColor.a), 0.05);
         fragColor = finalColor;
     }
     else {
