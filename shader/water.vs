@@ -11,12 +11,10 @@ out mat4 inverseView;
 out mat4 inverseProjection;
 out vec2 texCoord;
 
-
-
 void main() {
     inverseProjection = inverse(uProjection);
     inverseView = inverse(uView);
     texCoord = aTexCoord;
     vec4 clipPos = uTransform * vec4(aPos, 1.0);
-    gl_Position = clipPos;
+    gl_Position = clipPos.xyww;
 }
