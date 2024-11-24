@@ -104,7 +104,7 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection) {
                 float isShadow = 0.0;
                 vec3 shadowPos = p;
                 vec3 shadowSunDirection = sunDirection;
-                for (int j = 0; j < 80; j++) { // Shadow ray steps
+                for (int j = 0; j < 80; j++) {
                     isShadow = sdSphere(shadowPos - uObstaclePos, 0.1);
                     if (isShadow < 0.01) {
                         shadow = mix(1.0, 0.0, exp(-j * 0.1));
