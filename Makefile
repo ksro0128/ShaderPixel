@@ -24,6 +24,7 @@ clean:
 
 fclean : 
 	make clean
+	rm -f imgui.ini
 	rm -f $(TARGET)
 
 re: 
