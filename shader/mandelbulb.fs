@@ -6,6 +6,7 @@ uniform vec3 uCenter;         // Mandelbox 중심 위치
 uniform vec3 uViewPos;        // 카메라 위치
 uniform vec3 uLightPos;       // 광원 위치
 uniform vec2 uResolution;     // 렌더링 해상도
+uniform float uTime;          // 시간
 
 in mat4 inverseView;
 in mat4 inverseProjection;
@@ -39,7 +40,7 @@ float Mandelbulb(vec3 pos) {
         r = length(z);
         if (r > bailOut) break;
 
-        float theta = acos(z.z / r);
+        float theta = acos(z.z / r) + uTime;
         float phi = atan(z.y, z.x);
         float zr = pow(r, power - 1.0);
         dr = zr * power * dr + 1.0;
