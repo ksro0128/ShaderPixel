@@ -11,6 +11,25 @@
 #include "model.h"
 #include "framebuffer.h"
 #include "shadow_map.h"
+#include <algorithm>
+
+enum ObjectType {
+    BEAD,
+    MANDELBOX,
+    MANDELBULB,
+    SPONGE,
+    WORLD,
+    KALEIDOSCOPE,
+    CLOUD,
+    WATER
+};
+
+struct DrawCall {
+    int type;
+    glm::vec3 pos;
+    float distance = 0;
+};
+
 
 CLASS_PTR(Context)
 class Context {
@@ -26,7 +45,7 @@ private:
     Context() {}
     bool Init();
     
-    float uTime { 0.0f };
+    float m_time { 0.0f };
 
     // shader
     ProgramUPtr m_simpleProgram;                    // simple shader
@@ -51,6 +70,12 @@ private:
     TextureUPtr m_dinoTexture;
     CubeTexturePtr m_hdrCubeMap;
     CubeTexturePtr m_anotherWorldCubeMap;
+    
+    TexturePtr colorAttachment1;
+    TexturePtr colorAttachment2;
+    TexturePtr colorAttachmentAW;
+    TexturePtr colorAttachment2D;
+
 
     // mesh
     MeshUPtr m_box;
@@ -61,7 +86,9 @@ private:
 
 
     //framebuffer
-    FramebufferUPtr m_framebuffer;
+    FramebufferUPtr m_framebuffer1;
+    FramebufferUPtr m_framebuffer2;
+
     FramebufferUPtr m_testFramebuffer;
     FramebufferUPtr m_anotherWorldFramebuffer;
     FramebufferUPtr m_kaleidoscopeFramebuffer;
@@ -110,6 +137,30 @@ private:
 
         // water block
     glm::vec3 m_waterPos { 7.5f, 1.7f, 7.5f };
+
+    void PreRenderAnotherWorld(const glm::mat4& projection, const glm::mat4& view);
+    void PreRenderKaleidoscope(const glm::mat4& projection, const glm::mat4& view);
+
+    // 배경 그리기
+    void DrawEnvironment(const glm::mat4& projection, const glm::mat4& view);
+
+    void DrawBead(const glm::mat4& projection, const glm::mat4& view);
+    void DrawMandelbox(const glm::mat4& projection, const glm::mat4& view);
+    void DrawMandelbulb(const glm::mat4& projection, const glm::mat4& view);
+    void DrawSponge(const glm::mat4& projection, const glm::mat4& view);
+    void DrawAnotherWorld(const glm::mat4& projection, const glm::mat4& view);
+    void DrawKaleidoscope(const glm::mat4& projection, const glm::mat4& view);
+    void DrawCloud(const glm::mat4& projection, const glm::mat4& view);
+    void DrawWater(const glm::mat4& projection, const glm::mat4& view);
+
+    void BindFramebuffer();
+    void BindColorAttachment();
+
+    DrawCall m_drawcalls[8];
+    void CalDistance();
+    void SortDrawCall();
+    void DrawAll(const glm::mat4& projection, const glm::mat4& view);
+    int m_level {0};
 
 };
 

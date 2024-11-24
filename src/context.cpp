@@ -45,8 +45,8 @@ void Context::Reshape(int width, int height) {
     glViewport(0, 0, m_width, m_height);
 
     // framebuffer create
-    m_framebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
-    m_testFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
+    m_framebuffer1 = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
+    m_framebuffer2 = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
     m_anotherWorldFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
     m_kaleidoscopeFramebuffer = Framebuffer::Create({Texture::Create(width, height, GL_RGBA)});
 }
@@ -162,10 +162,29 @@ bool Context::Init() {
     Framebuffer::BindToDefault();
     glViewport(0, 0, m_width, m_height);
 
+
+    m_drawcalls[0].type = BEAD;
+    m_drawcalls[0].pos = m_beadPos;
+    m_drawcalls[1].type = MANDELBOX;
+    m_drawcalls[1].pos = m_mandelboxPos;
+    m_drawcalls[2].type = MANDELBULB;
+    m_drawcalls[2].pos = m_mandelbulbPos;
+    m_drawcalls[3].type = SPONGE;
+    m_drawcalls[3].pos = m_spongePos;
+    m_drawcalls[4].type = WORLD;
+    m_drawcalls[4].pos = m_anotherWorldPos;
+    m_drawcalls[5].type = KALEIDOSCOPE;
+    m_drawcalls[5].pos = m_kaleidoscopePos;
+    m_drawcalls[6].type = CLOUD;
+    m_drawcalls[6].pos = m_cloudPos;
+    m_drawcalls[7].type = WATER;
+    m_drawcalls[7].pos = m_waterPos;
+
     return true;
 }
 
 void Context::Render() {
+    m_time += 0.01f;
     if (ImGui::Begin("ui window")) {
         ImGui::DragFloat3("camera pos", glm::value_ptr(m_cameraPos), 0.01f);
         ImGui::DragFloat("camera yaw", &m_cameraYaw, 0.5f);
@@ -176,6 +195,25 @@ void Context::Render() {
             m_cameraYaw = 0.0f;
             m_cameraPitch = 0.0f;
             m_cameraPos = glm::vec3(0.0f, 1.8f, 0.0f);
+        }
+        ImGui::Separator();
+        if (ImGui::Button("reset light")) {
+            m_lightPos = glm::vec3(0.0f, 10.0f, 0.0f);
+        }
+        if (ImGui::Button("light to bead")) {
+            m_lightPos = glm::vec3(-4.5f, 5.0f, -4.5f);
+        }
+        if (ImGui::Button("light to cloud")) {
+            m_lightPos = glm::vec3(0.0f, 5.0f, -4.5f);
+        }
+        if (ImGui::Button("light to mandelbox")) {
+            m_lightPos = glm::vec3(4.5f, 6.0f, -4.5f);
+        }
+        if (ImGui::Button("light to mandelbulb")) {
+            m_lightPos = glm::vec3(-4.5f, 5.0f, 0.0f);
+        }
+        if (ImGui::Button("light to sponge")) {
+            m_lightPos = glm::vec3(4.5f, 6.0f, 0.0f);
         }
         ImGui::Separator();
         // bool 토글
@@ -199,114 +237,27 @@ void Context::Render() {
         m_cameraPos,
         m_cameraPos + m_cameraFront,
         m_cameraUp);
-    auto model = glm::mat4(1.0f);
     
-    // start 2d shader - kaleidoscope
-    m_kaleidoscopeFramebuffer->Bind();
-    auto& colorAttachment2D = m_kaleidoscopeFramebuffer->GetColorAttachment(0);
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m_kaleidoscopeProgram->Use();
-    model = glm::mat4(1.0f);
-    m_kaleidoscopeProgram->SetUniform("transform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-    m_kaleidoscopeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
-    m_kaleidoscopeProgram->SetUniform("uTime", uTime);
-    uTime += 0.01f;
-    m_plane->Draw(m_kaleidoscopeProgram.get());
-    // end 2d shader - kaleidoscope
 
+    PreRenderKaleidoscope(projection, view);
+    PreRenderAnotherWorld(projection, view);
 
-    // start another world
-    auto anotherWorldCameraFront = glm::normalize(m_anotherWorldPos - m_cameraPos);
-    auto anotherWorldProjection = glm::perspective(glm::radians(45.0f),
-        (float)m_width / (float)m_height, 0.01f, 150.0f);
-    auto anotherWorldView = glm::lookAt(
-        m_anotherWorldPos,
-        m_anotherWorldPos + anotherWorldCameraFront,
-        m_cameraUp);
-    m_anotherWorldFramebuffer->Bind();
-    auto& colorAttachmentAW = m_anotherWorldFramebuffer->GetColorAttachment(0);
+    m_framebuffer1->Bind();
+    colorAttachment1 = m_framebuffer1->GetColorAttachment(0);
     glViewport(0, 0, m_width, m_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glDepthFunc(GL_LEQUAL);
-    m_skyboxProgram->Use();
-    m_skyboxProgram->SetUniform("projection", anotherWorldProjection);
-    m_skyboxProgram->SetUniform("view", anotherWorldView);
-    m_skyboxProgram->SetUniform("cubeMap", 0);
-    m_anotherWorldCubeMap->Bind();
-    m_box->Draw(m_skyboxProgram.get());
-    glDepthFunc(GL_LESS);
+    DrawEnvironment(projection, view);
+    CalDistance();
+    SortDrawCall();
+    DrawAll(projection, view);
+}
 
-    glActiveTexture(GL_TEXTURE0);
-    m_dinoTexture->Bind();
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
-            m_textureProgram->Use();
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(-10.0f + j * 4.0f, 0.0f, 7.5f + i * 4.0f));
-            model = glm::scale(model, glm::vec3(0.5f));
-            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            m_textureProgram->SetUniform("transform", anotherWorldProjection * anotherWorldView * model);
-            m_textureProgram->SetUniform("tex", 0);
-            m_dinoModel->Draw(m_textureProgram.get());
-        }
-    }
-    // end another world
-
-
-    m_framebuffer->Bind();
-    auto& colorAttachment = m_framebuffer->GetColorAttachment(0);
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-    // start ground
-    m_normalProgram->Use();
-    m_normalProgram->SetUniform("viewPos", m_cameraPos);
-    m_normalProgram->SetUniform("lightPos", m_lightPos);
-    glActiveTexture(GL_TEXTURE0);
-    m_groundAlbedo->Bind();
-    m_normalProgram->SetUniform("diffuse", 0);
-    glActiveTexture(GL_TEXTURE1);
-    m_groundNormal->Bind();
-    m_normalProgram->SetUniform("normalMap", 1);
-    glActiveTexture(GL_TEXTURE0);
-    model = glm::mat4(1.0f);
-    model = glm::scale(model, glm::vec3(30.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    m_normalProgram->SetUniform("transform", projection * view * model);
-    m_normalProgram->SetUniform("modelTransform", model);
-    m_plane->Draw(m_normalProgram.get());
-    // end ground
-
-    // start light
-    m_simpleProgram->Use();
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, m_lightPos);
-    model = glm::scale(model, glm::vec3(0.1f));
-    m_simpleProgram->SetUniform("transform", projection * view * model);
-    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    m_sphere->Draw(m_simpleProgram.get());
-    // end light
-
-    // start skybox
-    glDepthFunc(GL_LEQUAL);
-    m_skyboxProgram->Use();
-    m_skyboxProgram->SetUniform("projection", projection);
-    m_skyboxProgram->SetUniform("view", view);
-    m_skyboxProgram->SetUniform("cubeMap", 0);
-    m_hdrCubeMap->Bind();
-    m_box->Draw(m_skyboxProgram.get());
-    glDepthFunc(GL_LESS);
-    // end skybox
-
-    // start bead
-    //blending
+void Context::DrawBead(const glm::mat4& projection, const glm::mat4& view) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_beadProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_beadPos);
     model = glm::scale(model, glm::vec3(2.1f));
     m_beadProgram->SetUniform("uView", view);
@@ -324,12 +275,11 @@ void Context::Render() {
     
     m_sphere->Draw(m_beadProgram.get());
     glDisable(GL_BLEND);
-    // end bead
+}
 
-
-    // start mandelbox
+void Context::DrawMandelbox(const glm::mat4& projection, const glm::mat4& view) {
     m_mandelboxProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_mandelboxPos);
     model = glm::scale(model, glm::vec3(4.0f));
     m_mandelboxProgram->SetUniform("uView", view);
@@ -341,12 +291,11 @@ void Context::Render() {
     m_mandelboxProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_mandelboxProgram->SetUniform("uLightPos", m_lightPos);
     m_box->Draw(m_mandelboxProgram.get());
-    // end mandelbox
+}
 
-
-    // start mandelbulb
+void Context::DrawMandelbulb(const glm::mat4& projection, const glm::mat4& view) {
     m_mandelbulbProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_mandelbulbPos);
     model = glm::scale(model, glm::vec3(3.0f));
     m_mandelbulbProgram->SetUniform("uView", view);
@@ -357,12 +306,14 @@ void Context::Render() {
     m_mandelbulbProgram->SetUniform("uViewPos", m_cameraPos);
     m_mandelbulbProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_mandelbulbProgram->SetUniform("uLightPos", m_lightPos);
+    m_mandelbulbProgram->SetUniform("uTime", m_time);
     m_sphere->Draw(m_mandelbulbProgram.get());
-    // end mandelbulb
+}
 
-    // start sponge
+
+void Context::DrawSponge(const glm::mat4& projection, const glm::mat4& view) {
     m_spongeProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_spongePos);
     model = glm::scale(model, glm::vec3(2.0f));
     m_spongeProgram->SetUniform("uView", view);
@@ -374,11 +325,12 @@ void Context::Render() {
     m_spongeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_spongeProgram->SetUniform("uLightPos", m_lightPos);
     m_box->Draw(m_spongeProgram.get());
-    // end sponge
+}
 
-    // start another world
+
+void Context::DrawAnotherWorld(const glm::mat4& projection, const glm::mat4& view) {
     m_textureProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_anotherWorldPos);
     model = glm::scale(model, glm::vec3(2.0f));
     model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -396,11 +348,11 @@ void Context::Render() {
     m_simpleProgram->SetUniform("transform", projection * view * model);
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.8f, 0.6f, 1.0f));
     m_pictureFrame->Draw(m_simpleProgram.get());
-    // end another world
+}
 
-    // start 2d shader - kaleidoscope
+void Context::DrawKaleidoscope(const glm::mat4& projection, const glm::mat4& view) {
     m_textureProgram->Use();
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     model = glm::translate(model, m_kaleidoscopePos);
     model = glm::scale(model, glm::vec3(2.0f));
     model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -418,28 +370,16 @@ void Context::Render() {
     m_simpleProgram->SetUniform("transform", projection * view * model);
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.8f, 0.6f, 1.0f));
     m_pictureFrame->Draw(m_simpleProgram.get());
-    // end 2d shader - kaleidoscope
+}
 
-    
-
-
-    // start cloud
-    Framebuffer::BindToDefault();
-
-    m_testFramebuffer->Bind();
-    auto& testColorAttachment = m_testFramebuffer->GetColorAttachment(0);
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void Context::DrawCloud(const glm::mat4& projection, const glm::mat4& view) {
+    BindFramebuffer();
     m_cloudProgram->Use();
     glDepthFunc(GL_LEQUAL);
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glActiveTexture(GL_TEXTURE0);
-    colorAttachment->Bind();
+    BindColorAttachment();
     m_cloudProgram->SetUniform("tex", 0);
-
-    model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);
     m_cloudProgram->SetUniform("uView", view);
     m_cloudProgram->SetUniform("uProjection", projection);
     m_cloudProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
@@ -451,16 +391,15 @@ void Context::Render() {
     m_cloudProgram->SetUniform("uObstacleOn", m_obstacleOn);
     m_plane->Draw(m_cloudProgram.get());
     glDepthFunc(GL_LESS);
-    // end cloud
+}
 
-
-    Framebuffer::BindToDefault();
-    glViewport(0, 0, m_width, m_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+void Context::DrawWater(const glm::mat4& projection, const glm::mat4& view) {
+    BindFramebuffer();
     m_waterProgram->Use();
+    glDepthFunc(GL_LEQUAL);
     glActiveTexture(GL_TEXTURE0);
-    testColorAttachment->Bind();
-    model = glm::mat4(1.0f);
+    BindColorAttachment();
+    auto model = glm::mat4(1.0f);
     m_waterProgram->SetUniform("uView", view);
     m_waterProgram->SetUniform("uProjection", projection);
     m_waterProgram->SetUniform("uTransform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
@@ -468,12 +407,175 @@ void Context::Render() {
     m_waterProgram->SetUniform("uViewPos", m_cameraPos);
     m_waterProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
     m_waterProgram->SetUniform("uLightPos", m_lightPos);
-    m_waterProgram->SetUniform("uTime", uTime);
+    m_waterProgram->SetUniform("uTime", m_time);
     m_waterProgram->SetUniform("tex", 0);
     glActiveTexture(GL_TEXTURE1);
     m_hdrCubeMap->Bind();
     m_waterProgram->SetUniform("cubeTex", 1);
     glActiveTexture(GL_TEXTURE0);
     m_plane->Draw(m_waterProgram.get());
+    glDepthFunc(GL_LESS);
 
+}
+
+void Context::BindFramebuffer() {
+    if (m_level == 0) {
+        m_framebuffer2->Bind();
+        colorAttachment2 = m_framebuffer2->GetColorAttachment(0);
+        glViewport(0, 0, m_width, m_height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_level = 1;
+    }
+    else {
+        Framebuffer::BindToDefault();
+        glViewport(0, 0, m_width, m_height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_level = 0;
+    }
+}
+
+void Context::BindColorAttachment() {
+    if (m_level == 1) {
+        colorAttachment1->Bind();
+    }
+    else {
+        colorAttachment2->Bind();
+    }
+}
+
+void Context::CalDistance() {
+    for (int i = 0; i < 8; i++) {
+        m_drawcalls[i].distance = glm::length(m_cameraPos - m_drawcalls[i].pos);
+    }
+}
+
+void Context::SortDrawCall() {
+    std::sort(m_drawcalls, m_drawcalls + 8, [](const DrawCall& a, const DrawCall& b) {
+        return a.distance > b.distance;
+    });
+}
+
+void Context::DrawAll(const glm::mat4& projection, const glm::mat4& view) {
+    for (int i = 0; i < 8; i++) {
+        switch (m_drawcalls[i].type) {
+        case BEAD:
+            DrawBead(projection, view);
+            break;
+        case MANDELBOX:
+            DrawMandelbox(projection, view);
+            break;
+        case MANDELBULB:
+            DrawMandelbulb(projection, view);
+            break;
+        case SPONGE:
+            DrawSponge(projection, view);
+            break;
+        case WORLD:
+            DrawAnotherWorld(projection, view);
+            break;
+        case KALEIDOSCOPE:
+            DrawKaleidoscope(projection, view);
+            break;
+        case CLOUD:
+            DrawCloud(projection, view);
+            break;
+        case WATER:
+            DrawWater(projection, view);
+            break;
+        }
+    }
+}
+
+void Context::PreRenderAnotherWorld(const glm::mat4& projection, const glm::mat4& view) {
+    auto anotherWorldCameraFront = glm::normalize(m_anotherWorldPos - m_cameraPos);
+    auto anotherWorldProjection = glm::perspective(glm::radians(45.0f),
+        (float)m_width / (float)m_height, 0.01f, 150.0f);
+    auto anotherWorldView = glm::lookAt(
+        m_anotherWorldPos,
+        m_anotherWorldPos + anotherWorldCameraFront,
+        m_cameraUp);
+    m_anotherWorldFramebuffer->Bind();
+    colorAttachmentAW = m_anotherWorldFramebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDepthFunc(GL_LEQUAL);
+    m_skyboxProgram->Use();
+    m_skyboxProgram->SetUniform("projection", anotherWorldProjection);
+    m_skyboxProgram->SetUniform("view", anotherWorldView);
+    m_skyboxProgram->SetUniform("cubeMap", 0);
+    m_anotherWorldCubeMap->Bind();
+    m_box->Draw(m_skyboxProgram.get());
+    glDepthFunc(GL_LESS);
+
+    glActiveTexture(GL_TEXTURE0);
+    m_dinoTexture->Bind();
+    auto model = glm::mat4(1.0f);
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            m_textureProgram->Use();
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(-10.0f + j * 4.0f, 0.0f, 7.5f + i * 4.0f));
+            model = glm::scale(model, glm::vec3(0.5f));
+            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            m_textureProgram->SetUniform("transform", anotherWorldProjection * anotherWorldView * model);
+            m_textureProgram->SetUniform("tex", 0);
+            m_dinoModel->Draw(m_textureProgram.get());
+        }
+    }
+}
+
+void Context::PreRenderKaleidoscope(const glm::mat4& projection, const glm::mat4& view) {
+    m_kaleidoscopeFramebuffer->Bind();
+    colorAttachment2D = m_kaleidoscopeFramebuffer->GetColorAttachment(0);
+    glViewport(0, 0, m_width, m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_kaleidoscopeProgram->Use();
+    auto model = glm::mat4(1.0f);
+    m_kaleidoscopeProgram->SetUniform("transform", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+    m_kaleidoscopeProgram->SetUniform("uResolution", glm::vec2(m_width, m_height));
+    m_kaleidoscopeProgram->SetUniform("uTime", m_time);
+    m_plane->Draw(m_kaleidoscopeProgram.get());
+}
+
+void Context::DrawEnvironment(const glm::mat4& projection, const glm::mat4& view) {
+    // start ground
+    m_normalProgram->Use();
+    m_normalProgram->SetUniform("viewPos", m_cameraPos);
+    m_normalProgram->SetUniform("lightPos", m_lightPos);
+    glActiveTexture(GL_TEXTURE0);
+    m_groundAlbedo->Bind();
+    m_normalProgram->SetUniform("diffuse", 0);
+    glActiveTexture(GL_TEXTURE1);
+    m_groundNormal->Bind();
+    m_normalProgram->SetUniform("normalMap", 1);
+    glActiveTexture(GL_TEXTURE0);
+    auto model = glm::mat4(1.0f);
+    model = glm::scale(model, glm::vec3(30.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    m_normalProgram->SetUniform("transform", projection * view * model);
+    m_normalProgram->SetUniform("modelTransform", model);
+    m_plane->Draw(m_normalProgram.get());
+    // end ground
+
+    // start light
+    m_simpleProgram->Use();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, m_lightPos);
+    model = glm::scale(model, glm::vec3(0.2f));
+    m_simpleProgram->SetUniform("transform", projection * view * model);
+    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+    m_sphere->Draw(m_simpleProgram.get());
+    // end light
+
+    // start skybox
+    glDepthFunc(GL_LEQUAL);
+    m_skyboxProgram->Use();
+    m_skyboxProgram->SetUniform("projection", projection);
+    m_skyboxProgram->SetUniform("view", view);
+    m_skyboxProgram->SetUniform("cubeMap", 0);
+    m_hdrCubeMap->Bind();
+    m_box->Draw(m_skyboxProgram.get());
+    glDepthFunc(GL_LESS);
+    // end skybox
 }
