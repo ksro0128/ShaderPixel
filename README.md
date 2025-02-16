@@ -28,7 +28,7 @@
 
 ## Shader Gallery
 
-| 오브젝트 | 미리보기 |
+| 오브젝트 |   |
 |----------|---------|
 | **Mandelbox** | ![Mandelbox](https://github.com/ksro0128/ShaderPixel/blob/main/docs/images/Mandelbox.png) |
 | **3D Fractal** | ![3D Fractal](https://github.com/ksro0128/ShaderPixel/blob/main/docs/images/3D%20Fractal.gif) |
